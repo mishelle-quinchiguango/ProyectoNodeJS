@@ -4,6 +4,8 @@ const {validationResult}= require('express-validator')
 const { urlencoded } = require("body-parser");
 var Usuarios = require('../models/users');
 
+const bcrypt = require('bcrypt');
+
 var controller = {
   
     listUsuarios:function(req, res){
@@ -76,33 +78,42 @@ var controller = {
                     message:'Usuario existente'
                 });
             }
+
+            //Crypt de password
+            const saltRounds = 10;
+            
+            bcrypt.genSalt(saltRounds, function(err, salt) {
+                bcrypt.hash(user_info.password, salt, function(err, hash) {
+                    var create_user=new Usuarios(); 
+
+                    create_user.nombre=user_info.nombre;
+                    create_user.edad=user_info.edad;
+                    create_user.email=user_info.email;
+                    create_user.password=hash;
+                    create_user.idUser=user_info.idUser;
+
+                    create_user.save()
+                    .then((result) =>{
+                        return res.status(200).json({
+                            status: 200,
+                            message:'Usuario almacenado',
+                            data: result
+                        });
+                    })
+                    .catch(error =>{
+                        return res.status(500).json({
+                            status: 500,
+                            message:'Error encontrado',
+                            
+                        });
+            } );
+                });
+            });
               
 
 
 
-            var create_user=new Usuarios(); 
-
-            create_user.nombre=user_info.nombre;
-            create_user.edad=user_info.edad;
-            create_user.email=user_info.email;
-            create_user.password=user_info.password;
-            create_user.idUser=user_info.idUser;
-
-            create_user.save()
-            .then((result) =>{
-                return res.status(200).json({
-                    status: 200,
-                    message:'Usuario almacenado',
-                    data: result
-                });
-            })
-            .catch(error =>{
-                return res.status(500).json({
-                    status: 500,
-                    message:'Error encontrado',
-                    
-                });
-            } );
+            
             
               
           })
@@ -132,40 +143,50 @@ var controller = {
 
         var params=req.params;
         var iduser=parseInt(params.id);
-        
         var user_info=req.body;
-        var userUpdate={
-            nombre:user_info.nombre,
-            edad:user_info.edad,
-            email:user_info.email,
-            password:user_info.password,
-            idUser:user_info.idUser
-        }
-        
-        Usuarios.findOneAndUpdate({idUser:iduser},userUpdate)
-        .then(usuarios =>{
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, function(err, salt) {
+            bcrypt.hash(user_info.password, salt, function(err, hash) {
 
-            if(!usuarios){
-                return res.status(200).json({
-                    status: 200,
-                    message:'Usuario no encontrado'
-                });
-            }
-            console.log(usuarios);
-            return res.status(200).json({
-                status: 200,
-                message:'Usuario actualizado'
-            });
-            
-        })
-        .catch(error =>{
-            console.log(error)
-            return res.status(500).json({
-                status: 500,
-                message:'Error encontrado',
+                var userUpdate={
+                    nombre:user_info.nombre,
+                    edad:user_info.edad,
+                    email:user_info.email,
+                    password:hash,
+                    idUser:user_info.idUser
+                }
                 
-            });
-        } );
+                Usuarios.findOneAndUpdate({idUser:iduser},userUpdate)
+                .then(usuarios =>{
+        
+                    if(!usuarios){
+                        return res.status(200).json({
+                            status: 200,
+                            message:'Usuario no encontrado'
+                        });
+                    }
+                    console.log(usuarios);
+                    return res.status(200).json({
+                        status: 200,
+                        message:'Usuario actualizado'
+                    });
+                    
+                })
+                .catch(error =>{
+                    console.log(error)
+                    return res.status(500).json({
+                        status: 500,
+                        message:'Error encontrado',
+                        
+                    });
+                } );
+
+            
+
+        });
+    });
+        
+        
         
     },
 
